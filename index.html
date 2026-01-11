@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Gravity Dash - Unified</title>
+    <title>Neon Gravity Dash</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
@@ -20,7 +20,7 @@
         }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
         
-        /* CRT Scanline Effect */
+        /* CRT Tarama Çizgisi Efekti */
         .crt-overlay {
             position: fixed;
             top: 0;
@@ -31,7 +31,7 @@
             background-size: 100% 4px, 3px 100%;
             pointer-events: none;
             z-index: 50;
-            opacity: 0.3;
+            opacity: 0.2;
         }
 
         .neon-border {
@@ -53,6 +53,11 @@
             100% { opacity: 1; }
         }
         .animate-flicker { animation: flicker 4s infinite; }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
     </style>
 </head>
 <body>
@@ -60,13 +65,13 @@
     <div id="root"></div>
 
     <script type="module">
-        import React, { useState, useEffect, useRef, useCallback, useMemo } from 'https://esm.sh/react@19.0.0';
+        import React, { useState, useEffect, useRef, useCallback } from 'https://esm.sh/react@19.0.0';
         import ReactDOM from 'https://esm.sh/react-dom@19.0.0/client';
         import htm from 'https://esm.sh/htm';
 
         const html = htm.bind(React.createElement);
 
-        // --- Constants ---
+        // --- Sabitler ---
         const GAME_WIDTH = 400;
         const GAME_HEIGHT = 700;
         const PLAYER_SIZE = 30;
@@ -95,36 +100,35 @@
             MULTIPLIER: '#bf00ff'
         };
 
-        // --- Types & Enums ---
         const GameStatus = { START: 'START', TUTORIAL: 'TUTORIAL', PLAYING: 'PLAYING', GAMEOVER: 'GAMEOVER' };
-        const Language = { EN: 'EN', JP: 'JP', ES: 'ES', TR: 'TR' };
+        const Language = { EN: 'EN', TR: 'TR', JP: 'JP', ES: 'ES' };
         const ObstacleType = { BLOCK: 'BLOCK', SPIKE: 'SPIKE' };
         const PowerUpType = { SHIELD: 'SHIELD', BOOST: 'BOOST', MULTIPLIER: 'MULTIPLIER' };
 
         const TRANSLATIONS = {
             [Language.EN]: { 
-                title1: "NEON", title2: "GRAVITY DASH", initiate: "INITIATE", instructions1: "TAP TO SHIFT GRAVITY", instructions2: "AVOID LETHAL SPIKES", 
+                title1: "NEON", title2: "GRAVITY DASH", initiate: "INITIATE", skip: "SKIP CALIBRATION", instructions1: "TAP TO SHIFT GRAVITY", instructions2: "AVOID LETHAL SPIKES", 
                 systemRecord: "System Record", systemCollapse: "SYSTEM COLLAPSE", coreYield: "Core Yield", reSync: "RE-SYNC", bestSync: "Best Sync", node: "NODE",
                 tutFlip: "TAP TO FLIP GRAVITY", tutDodge: "DODGE THE SPIKES", tutPower: "COLLECT POWER-UPS", tutReady: "SYSTEM CALIBRATED. GO!"
             },
+            [Language.TR]: { 
+                title1: "NEON", title2: "GRAVITY DASH", initiate: "BAŞLAT", skip: "AYARLARI ATLA", instructions1: "YERÇEKİMİNİ DEĞİŞTİRMEK İÇİN DOKUN", instructions2: "ÖLÜMCÜL ENGELLERDEN KAÇIN", 
+                systemRecord: "Sistem Kaydı", systemCollapse: "SİSTEM ÇÖKTÜ", coreYield: "Çekirdek Verimi", reSync: "TEKRAR SENK", bestSync: "En İyi Senk", node: "DÜĞÜM",
+                tutFlip: "YERÇEKİMİNİ DEĞİŞTİRMEK İÇİN DOKUN", tutDodge: "ENGELLERDEN KAÇIN", tutPower: "GÜÇLENDİRMELERİ TOPLA", tutReady: "SİSTEM AYARLANDI. BAŞLA!"
+            },
             [Language.JP]: { 
-                title1: "ネオン", title2: "グラビティ・ダッシュ", initiate: "起動", instructions1: "タップで重力を反転", instructions2: "障害物を回避せよ", 
+                title1: "ネオン", title2: "グラビティ・ダッシュ", initiate: "起動", skip: "スキップ", instructions1: "タップで重力を反転", instructions2: "障害物を回避せよ", 
                 systemRecord: "システム記録", systemCollapse: "システム崩壊", coreYield: "コア出力", reSync: "再同期", bestSync: "最高同期", node: "ノード",
                 tutFlip: "タップで重力を反転", tutDodge: "スパイクを回避", tutPower: "パワーアップを回収", tutReady: "システム調整完了。GO!"
             },
             [Language.ES]: { 
-                title1: "NEÓN", title2: "GRAVITY DASH", initiate: "INICIAR", instructions1: "PULSA PARA CAMBIAR GRAVEDAD", instructions2: "EVITA PICOS LETALES", 
+                title1: "NEÓN", title2: "GRAVITY DASH", initiate: "INICIAR", skip: "SALTAR", instructions1: "PULSA PARA CAMBIAR GRAVEDAD", instructions2: "EVITA PICOS LETALES", 
                 systemRecord: "Récord del Sistema", systemCollapse: "COLAPSO DEL SISTEMA", coreYield: "Rendimiento", reSync: "RE-SINCRONIZAR", bestSync: "Mejor Sincro", node: "NODO",
                 tutFlip: "PULSA PARA CAMBIAR GRAVEDAD", tutDodge: "ESQUIVA LOS PICOS", tutPower: "RECOGE MEJORAS", tutReady: "SISTEMA CALIBRADO. ¡VAMOS!"
-            },
-            [Language.TR]: { 
-                title1: "NEON", title2: "GRAVITY DASH", initiate: "BAŞLAT", instructions1: "YERÇEKİMİNİ DEĞİŞTİRMEK İÇİN DOKUN", instructions2: "ÖLÜMCÜL ENGELLERDEN KAÇIN", 
-                systemRecord: "Sistem Kaydı", systemCollapse: "SİSTEM ÇÖKTÜ", coreYield: "Çekirdek Verimi", reSync: "TEKRAR SENK", bestSync: "En İyi Senk", node: "DÜĞÜM",
-                tutFlip: "YERÇEKİMİNİ DEĞİŞTİRMEK İÇİN DOKUN", tutDodge: "ENGELLERDEN KAÇIN", tutPower: "GÜÇLENDİRMELERİ TOPLA", tutReady: "SİSTEM AYARLANDI. BAŞLA!"
             }
         };
 
-        // --- GameCanvas Component ---
+        // --- GameCanvas Bileşeni ---
         const GameCanvas = ({ status, onGameOver, onTutorialComplete, language }) => {
             const canvasRef = useRef(null);
             const requestRef = useRef();
@@ -138,9 +142,7 @@
                 score: 0, gameSpeed: INITIAL_SPEED, distanceTraveled: 0, lastSpawnX: 0, startTime: 0,
                 isDying: false, playerVisible: true, screenShake: 0, flashOpacity: 0, transitionWipe: 0, glitchTimer: 0,
                 activePowerUps: { [PowerUpType.SHIELD]: 0, [PowerUpType.BOOST]: 0, [PowerUpType.MULTIPLIER]: 0 },
-                tutorialStep: 0,
-                tutorialWait: 0,
-                hasFlipped: false
+                tutorialStep: 0, tutorialWait: 0, hasFlipped: false
             });
 
             const initAudio = () => {
@@ -208,9 +210,7 @@
                     score: 0, gameSpeed: isTutorial ? 3 : INITIAL_SPEED, distanceTraveled: 0, lastSpawnX: 200, startTime: Date.now(),
                     isDying: false, playerVisible: true, screenShake: 0, flashOpacity: 0, transitionWipe: 1.0, glitchTimer: 0,
                     activePowerUps: { [PowerUpType.SHIELD]: 0, [PowerUpType.BOOST]: 0, [PowerUpType.MULTIPLIER]: 0 },
-                    tutorialStep: isTutorial ? 1 : 0,
-                    tutorialWait: 0,
-                    hasFlipped: false
+                    tutorialStep: isTutorial ? 1 : 0, tutorialWait: 0, hasFlipped: false
                 };
             }, []);
 
@@ -256,7 +256,6 @@
                     return;
                 }
 
-                // --- Tutorial Logic ---
                 if (status === GameStatus.TUTORIAL) {
                     if (gs.tutorialStep === 1) {
                         if (gs.hasFlipped) {
@@ -276,15 +275,12 @@
                             gs.powerUps.push({ x: GAME_WIDTH + 50, y: FLOOR_HEIGHT + 30, width: 35, height: 35, type: PowerUpType.SHIELD, collected: false, pulseScale: 1 });
                             gs.tutorialWait = 1;
                         }
-                        const shielded = gs.activePowerUps[PowerUpType.SHIELD] > 0;
-                        if (shielded) {
+                        if (gs.activePowerUps[PowerUpType.SHIELD] > 0) {
                             gs.tutorialStep = 4; gs.tutorialWait = 0;
                         }
                     } else if (gs.tutorialStep === 4) {
                         gs.tutorialWait += deltaTime;
-                        if (gs.tutorialWait > 2000) {
-                            onTutorialComplete();
-                        }
+                        if (gs.tutorialWait > 2000) onTutorialComplete();
                     }
                 }
 
@@ -292,9 +288,7 @@
                 let effectiveSpeed = gs.gameSpeed;
                 if (gs.activePowerUps[PowerUpType.BOOST] > 0) effectiveSpeed *= 1.7;
                 
-                if (status === GameStatus.PLAYING) {
-                    gs.gameSpeed = Math.min(MAX_SPEED, gs.gameSpeed + SPEED_INCREMENT * deltaTime);
-                }
+                if (status === GameStatus.PLAYING) gs.gameSpeed = Math.min(MAX_SPEED, gs.gameSpeed + SPEED_INCREMENT * deltaTime);
                 gs.distanceTraveled += effectiveSpeed;
                 gs.score = Math.floor(((now - gs.startTime) / 1000) * (gs.activePowerUps[PowerUpType.MULTIPLIER] > 0 ? 2 : 1));
 
@@ -341,10 +335,6 @@
                 }
                 gs.particles.forEach(part => { part.x += part.vx * dtScale; part.y += part.vy * dtScale; part.life -= 0.02 * dtScale; });
                 gs.particles = gs.particles.filter(p => p.life > 0);
-                if (gs.playerVisible) {
-                    const tCol = gs.activePowerUps[PowerUpType.BOOST] > 0 ? COLORS.BOOST : COLORS.PLAYER;
-                    for (let i = 0; i < (gs.activePowerUps[PowerUpType.BOOST] > 0 ? 6 : 3); i++) gs.particles.push({ x: PLAYER_X + 2, y: p.y + Math.random() * PLAYER_SIZE, vx: -effectiveSpeed * 0.5 - Math.random() * 3, vy: (Math.random() - 0.5) * 3, life: 0.5 + Math.random() * 0.5, maxLife: 1.0, color: tCol + '66' });
-                }
             }, [status, triggerDeath, onTutorialComplete]);
 
             const draw = useCallback((ctx) => {
@@ -360,13 +350,6 @@
                     ctx.fillRect(xPos, GAME_HEIGHT - FLOOR_HEIGHT - h, 80, h); ctx.fillRect(xPos + 20, FLOOR_HEIGHT, 40, h * 0.6);
                 }
 
-                const drawGrid = (size, speed, color, width) => {
-                    ctx.strokeStyle = color; ctx.lineWidth = width; const offset = (gs.distanceTraveled * speed) % size;
-                    for (let x = -offset; x < GAME_WIDTH; x += size) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GAME_HEIGHT); ctx.stroke(); }
-                    for (let y = 0; y < GAME_HEIGHT; y += size) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GAME_WIDTH, y); ctx.stroke(); }
-                };
-                drawGrid(100, 0.15, 'rgba(0, 242, 255, 0.05)', 0.5);
-                
                 const midParallax = gs.distanceTraveled * 0.25;
                 gs.bgShapes.forEach(shape => {
                     ctx.save(); const x = ((shape.x - midParallax) % (GAME_WIDTH + 200)) - 100;
@@ -375,18 +358,16 @@
                     for (let i = 0; i < shape.sides; i++) { const ax = Math.cos(i * step) * shape.size, ay = Math.sin(i * step) * shape.size; if (i === 0) ctx.moveTo(ax, ay); else ctx.lineTo(ax, ay); }
                     ctx.closePath(); ctx.stroke(); ctx.restore();
                 });
-                drawGrid(50, 0.4, COLORS.GRID, 1);
 
                 gs.obstacles.forEach(obs => {
                     ctx.save(); const pulse = Math.sin(now / 150) * 0.5 + 0.5, flicker = Math.random() > 0.95 ? 1.5 : 1.0;
-                    if (flicker > 1.0) ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
                     ctx.shadowBlur = (25 + pulse * 25) * flicker; ctx.shadowColor = COLORS.OBSTACLE_GLOW; ctx.globalAlpha = 0.3 + pulse * 0.4;
                     if (obs.type === ObstacleType.SPIKE) {
                         ctx.beginPath(); const tipY = obs.y + (obs.y < GAME_HEIGHT / 2 ? obs.height : 0), baseY = obs.y + (obs.y < GAME_HEIGHT / 2 ? 0 : obs.height);
                         ctx.moveTo(obs.x, baseY); ctx.lineTo(obs.x + obs.width, baseY); ctx.lineTo(obs.x + obs.width / 2, tipY); ctx.fill();
-                        ctx.globalAlpha = 1.0; ctx.shadowBlur = 10; ctx.fillStyle = COLORS.OBSTACLE; ctx.fill();
+                        ctx.globalAlpha = 1.0; ctx.fillStyle = COLORS.OBSTACLE; ctx.fill();
                     } else {
-                        ctx.fillRect(obs.x, obs.y, obs.width, obs.height); ctx.globalAlpha = 1.0; ctx.shadowBlur = 20; ctx.fillStyle = COLORS.OBSTACLE; ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                        ctx.fillRect(obs.x, obs.y, obs.width, obs.height); ctx.globalAlpha = 1.0; ctx.fillStyle = COLORS.OBSTACLE; ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
                     } ctx.restore();
                 });
 
@@ -419,18 +400,13 @@
                 if (status === GameStatus.PLAYING) {
                     ctx.fillStyle = gs.activePowerUps[PowerUpType.MULTIPLIER] > 0 ? COLORS.MULTIPLIER : '#fff'; ctx.font = 'bold 32px Orbitron'; ctx.textAlign = 'right'; ctx.fillText(gs.score.toString(), GAME_WIDTH - 20, 50);
                 } else if (status === GameStatus.TUTORIAL) {
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    ctx.fillStyle = '#fff'; ctx.font = 'bold 20px Orbitron'; ctx.textAlign = 'center';
+                    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#fff'; ctx.font = 'bold 20px Orbitron'; ctx.textAlign = 'center';
                     let tutMsg = "";
                     if (gs.tutorialStep === 1) tutMsg = t.tutFlip;
                     else if (gs.tutorialStep === 2) tutMsg = t.tutDodge;
                     else if (gs.tutorialStep === 3) tutMsg = t.tutPower;
                     else if (gs.tutorialStep === 4) tutMsg = t.tutReady;
-                    if (tutMsg) {
-                        ctx.shadowBlur = 10; ctx.shadowColor = COLORS.PLAYER_GLOW;
-                        ctx.fillText(tutMsg, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100);
-                        ctx.shadowBlur = 0;
-                    }
+                    if (tutMsg) { ctx.shadowBlur = 10; ctx.shadowColor = COLORS.PLAYER_GLOW; ctx.fillText(tutMsg, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100); }
                 }
             }, [status, t]);
 
@@ -466,7 +442,7 @@
             const [status, setStatus] = useState(GameStatus.START);
             const [score, setScore] = useState(0);
             const [highScore, setHighScore] = useState(0);
-            const [language, setLanguage] = useState(Language.EN);
+            const [language, setLanguage] = useState(Language.TR);
 
             useEffect(() => {
                 const savedScore = localStorage.getItem('neon-gravity-highscore');
@@ -506,7 +482,7 @@
                                 </div>
                                 <div className="space-y-4 w-full max-w-[280px]">
                                     <button onClick=${startTutorial} className="w-full py-5 bg-transparent border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 font-bold text-2xl tracking-[0.2em] transition-all active:scale-95 font-orbitron neon-border uppercase">${t.initiate}</button>
-                                    <button onClick=${startGameDirectly} className="w-full py-2 bg-transparent text-cyan-400/40 hover:text-cyan-400 font-orbitron text-[10px] tracking-widest transition-all">SKIP CALIBRATION</button>
+                                    <button onClick=${startGameDirectly} className="w-full py-2 bg-transparent text-cyan-400/40 hover:text-cyan-400 font-orbitron text-[10px] tracking-widest transition-all uppercase">${t.skip}</button>
                                     <div className="flex flex-col gap-2 text-cyan-400/20 font-rajdhani tracking-widest text-xs uppercase pt-8"><p>${t.instructions1}</p><p>${t.instructions2}</p></div>
                                 </div>
                                 ${highScore > 0 && html`<div className="mt-16 border-t border-pink-500/20 pt-4 w-full"><div className="text-pink-500/60 font-orbitron text-[10px] uppercase tracking-[0.3em]">${t.systemRecord}</div><div className="text-pink-400 font-orbitron text-2xl font-bold">${highScore}</div></div>`}
@@ -515,14 +491,14 @@
 
                         ${status === GameStatus.GAMEOVER && html`
                             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl p-6 text-center">
-                                <h2 className="text-2xl font-orbitron font-bold text-pink-600 mb-1 tracking-widest uppercase">${t.systemCollapse}</h2>
+                                <h2 className="text-2xl font-orbitron font-bold text-pink-600 mb-1 tracking-widest uppercase animate-flicker">${t.systemCollapse}</h2>
                                 <div className="w-16 h-[2px] bg-pink-600/50 mb-8"></div>
                                 <div className="mb-12">
                                     <div className="text-cyan-400/40 text-xs font-orbitron tracking-widest mb-2 uppercase">${t.coreYield}</div>
                                     <div className="text-cyan-400 text-7xl font-black font-orbitron drop-shadow-[0_0_15px_rgba(0,242,255,0.6)]">${score}</div>
                                 </div>
                                 <div className="space-y-4 w-full max-w-[260px]">
-                                    <button onClick=${startGameDirectly} className="w-full py-5 bg-pink-600 hover:bg-pink-500 text-white font-bold text-xl tracking-[0.2em] transition-all active:scale-95 shadow-[0_0_20px_rgba(236,72,153,0.4)] font-orbitron">${t.reSync}</button>
+                                    <button onClick=${startGameDirectly} className="w-full py-5 bg-pink-600 hover:bg-pink-500 text-white font-bold text-xl tracking-[0.2em] transition-all active:scale-95 shadow-[0_0_20px_rgba(236,72,153,0.4)] font-orbitron uppercase">${t.reSync}</button>
                                     <div className="mt-8">
                                         <div className="text-pink-500/40 text-[10px] font-orbitron tracking-widest uppercase">${t.bestSync}</div>
                                         <div className="text-pink-400 font-orbitron font-bold uppercase">${t.node}: ${highScore}</div>
